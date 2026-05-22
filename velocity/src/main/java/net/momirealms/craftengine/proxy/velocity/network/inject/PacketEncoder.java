@@ -3,16 +3,15 @@ package net.momirealms.craftengine.proxy.velocity.network.inject;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.MessageToMessageEncoder;
+import io.netty.channel.ChannelOutboundHandlerAdapter;
+import io.netty.channel.ChannelPromise;
 import io.netty.util.ReferenceCountUtil;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.packet.PacketSink;
 import net.momirealms.craftengine.proxy.common.network.protocol.PacketSide;
 
-import java.util.List;
-
 @ChannelHandler.Sharable
-final class PacketEncoder extends MessageToMessageEncoder<ByteBuf> {
+final class PacketEncoder extends ChannelOutboundHandlerAdapter {
     private final PacketSink packetSink;
     private final ChannelConnection connection;
 
@@ -22,15 +21,25 @@ final class PacketEncoder extends MessageToMessageEncoder<ByteBuf> {
     }
 
     @Override
-    protected void encode(ChannelHandlerContext context, ByteBuf message, List<Object> output) {
-        // packetSink 可能返回原始 buffer、替换 buffer 或空 buffer 来取消 packet
-        ByteBuf result = this.packetSink.handle(this.connection, this.connection.player(), PacketSide.SERVER, message);
-        if (!result.isReadable()) {
-            if (result != message) {
-                ReferenceCountUtil.release(result);
-            }
+    public void write(ChannelHandlerContext context, Object message, ChannelPromise promise) throws Exception {
+        if (!(message instanceof ByteBuf buffer)) {
+            super.write(context, message, promise);
             return;
         }
-        output.add(result == message ? message.retain() : result);
+
+        // packetSink 可能返回原始 buffer、替换 buffer 或空 buffer 来取消 packet
+        ByteBuf result = this.packetSink.handle(this.connection, this.connection.player(), PacketSide.SERVER, buffer);
+        if (!result.isReadable()) {
+            if (result != buffer) {
+                ReferenceCountUtil.release(result);
+            }
+            ReferenceCountUtil.release(buffer);
+            return;
+        }
+
+        if (result != buffer) {
+            ReferenceCountUtil.release(buffer);
+        }
+        context.write(result, promise);
     }
 }
