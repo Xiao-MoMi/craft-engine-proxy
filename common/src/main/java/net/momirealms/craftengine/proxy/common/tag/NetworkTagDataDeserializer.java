@@ -30,7 +30,6 @@ public final class NetworkTagDataDeserializer {
             negativeOffsets[i] = buf.readUtf();
         }
         String NEG_16 = buf.readUtf();
-        String NEG_24 = buf.readUtf();
         String NEG_32 = buf.readUtf();
         String NEG_48 = buf.readUtf();
         String NEG_64 = buf.readUtf();
@@ -42,7 +41,6 @@ public final class NetworkTagDataDeserializer {
             positiveOffsets[i] = buf.readUtf();
         }
         String POS_16 = buf.readUtf();
-        String POS_24 = buf.readUtf();
         String POS_32 = buf.readUtf();
         String POS_48 = buf.readUtf();
         String POS_64 = buf.readUtf();
@@ -51,8 +49,8 @@ public final class NetworkTagDataDeserializer {
 
         return new OffsetFont(
                 font,
-                NEG_16, NEG_24, NEG_32, NEG_48, NEG_64, NEG_128, NEG_256,
-                POS_16, POS_24, POS_32, POS_48, POS_64, POS_128, POS_256,
+                NEG_16, NEG_32, NEG_48, NEG_64, NEG_128, NEG_256,
+                POS_16, POS_32, POS_48, POS_64, POS_128, POS_256,
                 negativeOffsets, positiveOffsets
         );
     }
