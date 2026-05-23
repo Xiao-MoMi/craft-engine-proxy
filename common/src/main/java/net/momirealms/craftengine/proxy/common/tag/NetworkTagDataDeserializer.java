@@ -13,8 +13,7 @@ import java.util.Map;
 public final class NetworkTagDataDeserializer {
     private NetworkTagDataDeserializer() {}
 
-    public static NetworkTagData read(ProxyByteBuf buf, NetworkTagDataRegistry registry, String serverName) {
-        long version = buf.readLong();
+    public static NetworkTagData read(long version, ProxyByteBuf buf, NetworkTagDataRegistry registry, String serverName) {
         OffsetFont offsetFont = readOffsetFont(buf);
         Map<Key, Image> images = readImage(buf, registry, serverName);
         Map<String, ServerLangData> l10n = readL10n(buf);
