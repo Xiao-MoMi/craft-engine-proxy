@@ -39,7 +39,7 @@ public class BungeeNetworkTagDataBridge implements Listener {
         if (player != null) {
             NetworkTagData tagData = this.networkTagDataSyncService.getTagData(player);
             byte[] data = this.networkTagDataSyncService.buildTagDataBytes(tagData);
-            player.sendServerPluginMessage(IDENTIFIER, data);
+            player.sendServerPluginMessage(BungeeNetworkTagDataBridge.IDENTIFIER, data);
         }
     }
 }
