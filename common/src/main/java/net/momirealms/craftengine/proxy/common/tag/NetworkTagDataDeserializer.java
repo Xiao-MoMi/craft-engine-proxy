@@ -73,13 +73,13 @@ public final class NetworkTagDataDeserializer {
         Key font = buf.readKey();
 
         int[][] codepointGrid = null;
-        int rows = buf.readInt();
+        int rows = buf.readVarInt();
         if (rows != -1) {
-            int cols = buf.readInt();
+            int cols = buf.readVarInt();
             codepointGrid = new int[rows][cols];
             for (int i = 0; i < rows; i++) {
                 for (int j = 0; j < cols; j++) {
-                    codepointGrid[i][j] = buf.readInt();
+                    codepointGrid[i][j] = buf.readVarInt();
                 }
             }
         }

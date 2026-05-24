@@ -47,9 +47,9 @@ public final class NetworkTagDataSyncService {
     }
 
     public synchronized void receiveTagData(String serverName, ProxyByteBuf in) {
-        long version = in.readLong();
-        int total = in.readInt();
-        int index = in.readInt();
+        long version = in.readVarLong();
+        int total = in.readVarInt();
+        int index = in.readVarInt();
         if (index < 0 || index >= total) return;
 
         NetworkPendingTagData pendingTagData = this.pendingDataRegistry.get(serverName);
