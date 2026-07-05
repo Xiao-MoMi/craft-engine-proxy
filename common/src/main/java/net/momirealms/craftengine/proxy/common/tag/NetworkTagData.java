@@ -51,7 +51,8 @@ public class NetworkTagData {
                 .stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey().value,
-                        Map.Entry::getValue
+                        Map.Entry::getValue,
+                        (oldValue, newValue) -> newValue
                 ));
         this.l10n = l10n;
         this.globalVariables = globalVariables;
