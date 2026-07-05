@@ -41,7 +41,7 @@ public final class NetworkTagDataSyncService {
     public byte[] buildTagDataBytes(@Nullable NetworkTagData networkTagData) {
         long version = networkTagData != null ? networkTagData.version() : -1L;
         ProxyByteBuf buf = new ProxyByteBuf(Unpooled.buffer());
-        buf.writeLong(version);
+        buf.writeVarLong(version);
         buf.writeUUID(PROXY_UUID);
         return buf.array();
     }
@@ -80,8 +80,8 @@ public final class NetworkTagDataSyncService {
 
         this.pendingDataRegistry.remove(serverName);
         this.registry.put(serverName, NetworkTagDataDeserializer.read(
-                version, new ProxyByteBuf(Unpooled.wrappedBuffer(finalData)), this.registry, serverName
-        ));
+                version, new ProxyByteBuf(Unpooled.wrappedBuffer(finalData)), this.registry, serverName)
+        );
     }
 
     public void clear() {
