@@ -30,6 +30,7 @@ public abstract class PacketListenerManager {
     // 注册常规监听器
     protected void registerPacketListeners() {
         CustomPayloadListener.register(this.packetRegistry, this.plugin());
+        PlayerInfoUpdateListener.register(this.packetRegistry, this.plugin());
         SetTabListHeaderAndFooterListener.register(this.packetRegistry, this.plugin());
         SetPlayerTeamListener.register(this.packetRegistry, this.plugin());
         SetBossBarListener.register(this.packetRegistry, this.plugin());
