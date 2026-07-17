@@ -1,23 +1,41 @@
 package net.momirealms.craftengine.proxy.common.platform;
 
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
+import net.momirealms.craftengine.proxy.common.network.resourcepack.ResourcePackSession;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
-public interface ProxyPlayer {
+/**
+ * 提供平台代理玩家共用的连接状态和操作定义.
+ */
+public abstract class ProxyPlayer {
+    private final ChannelConnection connection; // 玩家当前使用的代理连接
+    private final ResourcePackSession resourcePackSession; // 本次登录期间的资源包处理记录
 
-    UUID uuid();
+    protected ProxyPlayer(ChannelConnection connection) {
+        this.connection = Objects.requireNonNull(connection, "connection");
+        this.resourcePackSession = new ResourcePackSession();
+    }
 
-    Object platform();
+    public abstract UUID uuid();
 
-    BackendServer server();
+    public abstract Object platform();
 
-    ChannelConnection connection();
+    public abstract BackendServer server();
 
-    boolean sendServerPluginMessage(String channel, byte[] data);
+    public final ChannelConnection connection() {
+        return this.connection;
+    }
 
-    Locale locale();
+    public final ResourcePackSession resourcePackSession() {
+        return this.resourcePackSession;
+    }
 
-    void kick(String reason);
+    public abstract boolean sendServerPluginMessage(String channel, byte[] data);
+
+    public abstract Locale locale();
+
+    public abstract void kick(String reason);
 }

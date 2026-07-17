@@ -2,6 +2,7 @@ package net.momirealms.craftengine.proxy.bungeecord.network.inject;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
+import net.momirealms.craftengine.proxy.bungeecord.BungeeCordCraftEngine;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.packet.PacketSink;
 import net.momirealms.craftengine.proxy.common.util.ReflectionUtils;
@@ -41,7 +42,7 @@ final class ChannelInitializer extends io.netty.channel.ChannelInitializer<Chann
             return;
         }
         // 连接状态从 channel 创建时开始记录, 后续再绑定到 ProxyPlayer
-        ChannelConnection connection = new ChannelConnection(channel);
+        ChannelConnection connection = new ChannelConnection(channel, BungeeCordCraftEngine.instance().packetListenerManager());
         this.connectionRegisterer.accept(connection);
         PacketPipelineInjector.addTo(channel, this.packetSink, connection);
         channel.closeFuture().addListener((ChannelFutureListener) future -> this.connectionUnregister.accept(connection));

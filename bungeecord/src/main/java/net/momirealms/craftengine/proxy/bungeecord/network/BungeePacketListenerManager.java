@@ -98,11 +98,12 @@ public class BungeePacketListenerManager extends PacketListenerManager implement
 
     @EventHandler
     public void onDisconnect(PlayerDisconnectEvent event) {
-        // 保留连接对象到 Channel 关闭, 这里只解除玩家引用
+        // 保留连接对象到 Channel 关闭, 这里只解除玩家引用并删除玩家包装缓存
         ChannelConnection connection = this.connectionsByAddress.get(event.getPlayer().getSocketAddress());
         if (connection != null) {
             connection.unbind(event.getPlayer().getUniqueId());
         }
+        this.plugin.removePlayer(event.getPlayer());
     }
 
     private void addConnection(ChannelConnection connection) {

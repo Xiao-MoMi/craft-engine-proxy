@@ -12,13 +12,12 @@ import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
 import java.util.Locale;
 import java.util.UUID;
 
-public class VelocityPlayer implements ProxyPlayer {
+public class VelocityPlayer extends ProxyPlayer {
     private final Player platform;
-    private final ChannelConnection connection;
 
     public VelocityPlayer(Player platform, ChannelConnection connection) {
+        super(connection);
         this.platform = platform;
-        this.connection = connection;
     }
 
     public static VelocityPlayer wrap(Player platform, ChannelConnection connection) {
@@ -31,7 +30,7 @@ public class VelocityPlayer implements ProxyPlayer {
     }
 
     @Override
-    public Object platform() {
+    public Player platform() {
         return platform;
     }
 
@@ -41,11 +40,6 @@ public class VelocityPlayer implements ProxyPlayer {
                 .map(ServerConnection::getServer)
                 .map(VelocityBackendServer::wrapper)
                 .orElse(null);
-    }
-
-    @Override
-    public ChannelConnection connection() {
-        return this.connection;
     }
 
     @Override

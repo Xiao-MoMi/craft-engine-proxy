@@ -11,13 +11,12 @@ import net.momirealms.craftengine.proxy.common.platform.ProxyPlayer;
 import java.util.Locale;
 import java.util.UUID;
 
-public class BungeePlayer implements ProxyPlayer {
+public class BungeePlayer extends ProxyPlayer {
     private final ProxiedPlayer platform;
-    private final ChannelConnection connection;
 
     public BungeePlayer(ProxiedPlayer platform, ChannelConnection connection) {
+        super(connection);
         this.platform = platform;
-        this.connection = connection;
     }
 
     public static BungeePlayer wrap(ProxiedPlayer platform, ChannelConnection connection) {
@@ -30,7 +29,7 @@ public class BungeePlayer implements ProxyPlayer {
     }
 
     @Override
-    public Object platform() {
+    public ProxiedPlayer platform() {
         return this.platform;
     }
 
@@ -38,11 +37,6 @@ public class BungeePlayer implements ProxyPlayer {
     public BackendServer server() {
         Server server = platform.getServer();
         return server != null ? BungeeBackendServer.wrapper(server) : null;
-    }
-
-    @Override
-    public ChannelConnection connection() {
-        return this.connection;
     }
 
     @Override

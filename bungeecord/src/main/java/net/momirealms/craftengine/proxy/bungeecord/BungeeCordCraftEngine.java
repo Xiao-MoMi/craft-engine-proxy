@@ -62,6 +62,12 @@ public class BungeeCordCraftEngine extends Plugin implements ProxyCraftEngine {
         });
     }
 
+    public void removePlayer(ProxiedPlayer platform) {
+        this.onlinePlayers.computeIfPresent(platform.getUniqueId(), (uuid, current) ->
+                current.platform() == platform ? null : current
+        );
+    }
+
     @Override
     public File dataFolderFile() {
         return this.getDataFolder();

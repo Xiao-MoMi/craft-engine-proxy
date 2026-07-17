@@ -5,6 +5,7 @@ import io.netty.channel.ChannelFutureListener;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.packet.PacketSink;
 import net.momirealms.craftengine.proxy.common.util.ReflectionUtils;
+import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.reflect.Method;
@@ -41,7 +42,7 @@ final class ChannelInitializer extends io.netty.channel.ChannelInitializer<Chann
             return;
         }
         // 连接状态从 channel 创建时开始记录, 后续再绑定到 ProxyPlayer
-        ChannelConnection connection = new ChannelConnection(channel);
+        ChannelConnection connection = new ChannelConnection(channel, VelocityCraftEngine.instance().packetListenerManager());
         this.connectionRegisterer.accept(connection);
         PacketPipelineInjector.addTo(channel, this.packetSink, connection);
         channel.closeFuture().addListener((ChannelFutureListener) future -> this.connectionUnregister.accept(connection));

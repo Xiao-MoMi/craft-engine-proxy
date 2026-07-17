@@ -5,6 +5,9 @@ import io.netty.buffer.Unpooled;
 import net.momirealms.craftengine.proxy.common.ProxyCraftEngine;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.listener.common.CustomPayloadListener;
+import net.momirealms.craftengine.proxy.common.network.listener.common.ResourcePackRemoveListener;
+import net.momirealms.craftengine.proxy.common.network.listener.common.ResourcePackSendListener;
+import net.momirealms.craftengine.proxy.common.network.listener.common.ResourcePackStatusListener;
 import net.momirealms.craftengine.proxy.common.network.listener.game.*;
 import net.momirealms.craftengine.proxy.common.network.packet.*;
 import net.momirealms.craftengine.proxy.common.network.protocol.ConnectionState;
@@ -30,6 +33,9 @@ public abstract class PacketListenerManager {
     // 注册常规监听器
     protected void registerPacketListeners() {
         CustomPayloadListener.register(this.packetRegistry, this.plugin());
+        ResourcePackSendListener.register(this.packetRegistry);
+        ResourcePackStatusListener.register(this.packetRegistry);
+        ResourcePackRemoveListener.register(this.packetRegistry);
         PlayerInfoUpdateListener.register(this.packetRegistry, this.plugin());
         SetTabListHeaderAndFooterListener.register(this.packetRegistry, this.plugin());
         SetPlayerTeamListener.register(this.packetRegistry, this.plugin());
@@ -77,7 +83,13 @@ public abstract class PacketListenerManager {
         ));
         this.internalRegistrations.add(this.packetRegistry.register(
                 PacketRoute.typed(ConnectionState.PLAY, PacketType.Play.Server.CONFIGURATION_START),
-                (connection, player, packet) -> connection.setEncoderState(ConnectionState.CONFIGURATION)
+                (connection, player, packet) -> {
+                    // 1.20.2- 没有 UUID 多包模型, 切服进入新配置阶段时旧单包记录不再可信
+                    if (connection.clientVersion() == ClientVersion.V_1_20_2 && player != null) {
+                        player.resourcePackSession().clear();
+                    }
+                    connection.setEncoderState(ConnectionState.CONFIGURATION);
+                }
         ));
         this.internalRegistrations.add(this.packetRegistry.register(
                 PacketRoute.typed(ConnectionState.PLAY, PacketType.Play.Client.CONFIGURATION_ACK),
@@ -109,7 +121,7 @@ public abstract class PacketListenerManager {
             packetId = payload.readVarInt();
             int payloadIndex = payload.readerIndex();
             ConnectionState state = connection.getConnectionState(side);
-            ClientVersion clientVersion = connection.clientVersion();  // 只处理插件支持版本的包 （1.20 ~ ..ClientVersion.latest（））
+            ClientVersion clientVersion = connection.clientVersion(); // 只处理插件支持的客户端版本 (1.20-ClientVersion.latest())
             PacketHandler packetHandler = this.packetRegistry().getPacketHandler(side, state, clientVersion, packetId);
             if (packetHandler == null) {
                 payload.readerIndex(preProcessIndex);

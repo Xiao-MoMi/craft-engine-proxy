@@ -5,9 +5,11 @@ import net.momirealms.craftengine.proxy.common.network.protocol.PacketSide;
 import net.momirealms.craftengine.proxy.common.network.protocol.packettype.PacketType;
 import net.momirealms.craftengine.proxy.common.network.protocol.packettype.PacketTypeCommon;
 import net.momirealms.craftengine.proxy.common.network.protocol.player.ClientVersion;
+import net.momirealms.craftengine.proxy.common.util.ProxyByteBuf;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public interface ProtocolStateHolder {
 
@@ -36,4 +38,8 @@ public interface ProtocolStateHolder {
     void setDecoderState(ConnectionState decoderState);
 
     void setEncoderState(ConnectionState encoderState);
+
+    boolean sendServerbound(ConnectionState expectedState, PacketTypeCommon packetType, boolean bypassCraftEngine, Consumer<ProxyByteBuf> payloadWriter);
+
+    boolean sendClientbound(ConnectionState expectedState, PacketTypeCommon packetType, boolean bypassCraftEngine, Consumer<ProxyByteBuf> payloadWriter);
 }

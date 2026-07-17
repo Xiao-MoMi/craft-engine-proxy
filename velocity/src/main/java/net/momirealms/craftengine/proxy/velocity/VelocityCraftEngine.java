@@ -74,7 +74,9 @@ public class VelocityCraftEngine implements ProxyCraftEngine {
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
-        this.players.remove(event.getPlayer().getUniqueId());
+        this.players.computeIfPresent(event.getPlayer().getUniqueId(), (uuid, current) ->
+                current.platform() == event.getPlayer() ? null : current
+        );
     }
 
     @Override
