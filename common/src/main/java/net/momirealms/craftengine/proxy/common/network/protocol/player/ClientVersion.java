@@ -75,6 +75,7 @@ public enum ClientVersion {
     V_1_21_11(774),
 
     V_26_1(775),
+    V_26_2(776),
     //TODO UPDATE Add new protocol version field
 
     @Deprecated
