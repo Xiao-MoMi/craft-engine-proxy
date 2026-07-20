@@ -3,11 +3,11 @@ package net.momirealms.craftengine.proxy.velocity.platform;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ServerConnection;
 import com.velocitypowered.api.proxy.messages.MinecraftChannelIdentifier;
-import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.platform.BackendServer;
 import net.momirealms.craftengine.proxy.common.platform.ProxyPlayer;
 import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
+import net.momirealms.craftengine.proxy.velocity.util.VelocityAdventureHelper;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -56,7 +56,7 @@ public class VelocityPlayer extends ProxyPlayer {
 
     @Override
     public void kick(String reason) {
-        this.platform.disconnect(Component.text(reason));
+        VelocityAdventureHelper.disconnect(this.platform, reason);
     }
 
 }

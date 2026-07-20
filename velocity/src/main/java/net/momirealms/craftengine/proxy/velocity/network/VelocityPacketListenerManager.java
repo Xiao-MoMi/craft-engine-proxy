@@ -4,7 +4,6 @@ import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
 import io.netty.channel.Channel;
-import net.kyori.adventure.text.Component;
 import net.momirealms.craftengine.proxy.common.ProxyCraftEngine;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.listener.PacketListenerManager;
@@ -14,6 +13,7 @@ import net.momirealms.craftengine.proxy.common.network.protocol.packettype.Packe
 import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
 import net.momirealms.craftengine.proxy.velocity.network.inject.PacketPipelineInjector;
 import net.momirealms.craftengine.proxy.velocity.platform.VelocityPlayer;
+import net.momirealms.craftengine.proxy.velocity.util.VelocityAdventureHelper;
 
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
@@ -86,7 +86,7 @@ public final class VelocityPacketListenerManager extends PacketListenerManager {
         // Netty channel 早于 Velocity player 创建, 登录后再绑定玩家对象
         ChannelConnection connection = this.connectionsByAddress.get(event.getPlayer().getRemoteAddress());
         if (connection == null) {
-            event.getPlayer().disconnect(Component.text("[CraftEngine] Can't initialize ChannelConnection for " + event.getPlayer().getUsername()));
+            VelocityAdventureHelper.disconnect(event.getPlayer(), "[CraftEngine] Can't initialize ChannelConnection for " + event.getPlayer().getUsername());
             this.plugin.logger.error("Can't initialize ChannelConnection for {}", event.getPlayer().getUsername());
             return;
         }

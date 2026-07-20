@@ -11,6 +11,10 @@ dependencies {
     // Platform
     compileOnly("com.velocitypowered:velocity-api:${rootProject.properties["velocity_version"]}")
     annotationProcessor("com.velocitypowered:velocity-api:${rootProject.properties["velocity_version"]}")
+    // Reflection
+    compileOnly(files("${rootProject.rootDir}/libs/jni-internal-lookup-1.9.jar"))
+    compileOnly("net.momirealms:sparrow-reflection:${rootProject.properties["sparrow_reflection_version"]}")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:${rootProject.properties["caffeine_version"]}")
 }
 
 sourceSets {
