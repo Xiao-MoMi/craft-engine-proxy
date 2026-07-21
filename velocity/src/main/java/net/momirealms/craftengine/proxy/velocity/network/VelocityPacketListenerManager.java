@@ -3,6 +3,7 @@ package net.momirealms.craftengine.proxy.velocity.network;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
+import com.velocitypowered.api.proxy.Player;
 import io.netty.channel.Channel;
 import net.momirealms.craftengine.proxy.common.ProxyCraftEngine;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
@@ -14,18 +15,32 @@ import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
 import net.momirealms.craftengine.proxy.velocity.network.inject.PacketPipelineInjector;
 import net.momirealms.craftengine.proxy.velocity.platform.VelocityPlayer;
 import net.momirealms.craftengine.proxy.velocity.util.VelocityAdventureHelper;
+import net.momirealms.sparrow.reflection.clazz.SparrowClass;
+import net.momirealms.sparrow.reflection.method.matcher.MethodMatcher;
+import org.jetbrains.annotations.Nullable;
 
-import java.net.SocketAddress;
+import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class VelocityPacketListenerManager extends PacketListenerManager {
+    private static final String CONNECTED_PLAYER_CLASS_NAME = "com.velocitypowered.proxy.connection.client.ConnectedPlayer";
+    private static final String MINECRAFT_CONNECTION_CLASS_NAME = "com.velocitypowered.proxy.connection.MinecraftConnection";
+    private static final MethodHandle GET_PLAYER_CONNECTION_METHOD; // ConnectedPlayer#getConnection()
+    private static final MethodHandle GET_CONNECTION_CHANNEL_METHOD; // MinecraftConnection#getChannel()
+
     private final VelocityCraftEngine plugin;
     private final PacketPipelineInjector pipelineInjector; // 负责 Velocity Netty pipeline 注入
     private final PacketListenerManager.ErrorHandler errorHandler;
     private final ConcurrentMap<Channel, ChannelConnection> connectionsByChannel = new ConcurrentHashMap<>(); // Channel 生命周期索引
-    private final ConcurrentMap<SocketAddress, ChannelConnection> connectionsByAddress = new ConcurrentHashMap<>(); // 登录事件绑定玩家
     private volatile boolean loaded;
+
+    static {
+        Class<?> connectedPlayerClass = SparrowClass.findNoRemap(CONNECTED_PLAYER_CLASS_NAME);
+        GET_PLAYER_CONNECTION_METHOD = SparrowClass.of(connectedPlayerClass).getDeclaredSparrowMethod(MethodMatcher.named("getConnection")).unreflect();
+        Class<?> minecraftConnectionClass = SparrowClass.findNoRemap(MINECRAFT_CONNECTION_CLASS_NAME);
+        GET_CONNECTION_CHANNEL_METHOD = SparrowClass.of(minecraftConnectionClass).getDeclaredSparrowMethod(MethodMatcher.named("getChannel")).unreflect();
+    }
 
     public VelocityPacketListenerManager(VelocityCraftEngine plugin) {
         super();
@@ -78,47 +93,53 @@ public final class VelocityPacketListenerManager extends PacketListenerManager {
             }
         }
         this.connectionsByChannel.clear();
-        this.connectionsByAddress.clear();
     }
 
     @Subscribe
     public void onPostLogin(PostLoginEvent event) {
-        // Netty channel 早于 Velocity player 创建, 登录后再绑定玩家对象
-        ChannelConnection connection = this.connectionsByAddress.get(event.getPlayer().getRemoteAddress());
+        // Netty channel 早于 Velocity player 创建, 登录后再绑定玩家对象.
+        // 玩家远程地址可能被 PROXY protocol 改写 (如 haproxy-detector), 因此按 channel 关联而不是地址
+        Player player = event.getPlayer();
+        ChannelConnection connection = this.connectionByPlayer(player);
         if (connection == null) {
-            VelocityAdventureHelper.disconnect(event.getPlayer(), "[CraftEngine] Can't initialize ChannelConnection for " + event.getPlayer().getUsername());
-            this.plugin.logger.error("Can't initialize ChannelConnection for {}", event.getPlayer().getUsername());
+            VelocityAdventureHelper.disconnect(player, "[CraftEngine] Can't initialize ChannelConnection for " + player.getUsername());
+            this.plugin.logger.error("Can't initialize ChannelConnection for {}", player.getUsername());
             return;
         }
-        VelocityPlayer player = VelocityPlayer.wrap(event.getPlayer(), connection);
-        connection.bind(player);
+        VelocityPlayer velocityPlayer = VelocityPlayer.wrap(player, connection);
+        connection.bind(velocityPlayer);
     }
 
     @Subscribe
     public void onDisconnect(DisconnectEvent event) {
         // 保留连接对象到 Channel 关闭, 这里只解除玩家引用
-        ChannelConnection connection = this.connectionsByAddress.get(event.getPlayer().getRemoteAddress());
-        if (connection != null) {
-            connection.unbind(event.getPlayer().getUniqueId());
+        ChannelConnection connection = this.connectionByPlayer(event.getPlayer());
+        if (connection == null) {
+            this.plugin.logger.warn("Failed to access Netty channel of player {}, player connections will not be tracked", event.getPlayer().getUsername());
+            return;
         }
+        connection.unbind(event.getPlayer().getUniqueId());
     }
 
     private void addConnection(ChannelConnection connection) {
-        Channel channel = connection.channel();
-        this.connectionsByChannel.put(channel, connection);
-        SocketAddress remoteAddress = channel.remoteAddress();
-        if (remoteAddress != null) {
-            this.connectionsByAddress.put(remoteAddress, connection);
-        }
+        this.connectionsByChannel.put(connection.channel(), connection);
     }
 
     private void removeConnection(ChannelConnection connection) {
-        Channel channel = connection.channel();
-        this.connectionsByChannel.remove(channel);
-        SocketAddress remoteAddress = channel.remoteAddress();
-        if (remoteAddress != null) {
-            this.connectionsByAddress.remove(remoteAddress, connection);
+        this.connectionsByChannel.remove(connection.channel());
+    }
+
+    // 通过玩家底层的 MinecraftConnection 找到对应的 ChannelConnection
+    @Nullable
+    private ChannelConnection connectionByPlayer(Player player) {
+        try {
+            Object connection = GET_PLAYER_CONNECTION_METHOD.invoke(player);
+            Channel channel = (Channel) GET_CONNECTION_CHANNEL_METHOD.invoke(connection);
+            return this.connectionsByChannel.get(channel);
+        } catch (Throwable e) {
+            this.plugin.logger.warn("Failed to access Netty channel of player {}, player connections will not be tracked", player.getUsername(), e);
         }
+        return null;
     }
 
     @Override

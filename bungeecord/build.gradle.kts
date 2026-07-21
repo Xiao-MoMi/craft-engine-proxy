@@ -11,6 +11,10 @@ dependencies {
     // Platform
     compileOnly("net.md-5:bungeecord-api:${rootProject.properties["bungeecord_version"]}")
     compileOnly("org.jetbrains:annotations:${rootProject.properties["jetbrains_annotations_version"]}")
+    // Reflection
+    compileOnly(files("${rootProject.rootDir}/libs/jni-internal-lookup-1.9.jar"))
+    compileOnly("net.momirealms:sparrow-reflection:${rootProject.properties["sparrow_reflection_version"]}")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:${rootProject.properties["caffeine_version"]}")
 }
 
 tasks {
