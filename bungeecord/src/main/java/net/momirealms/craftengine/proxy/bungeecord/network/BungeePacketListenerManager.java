@@ -11,39 +11,26 @@ import net.md_5.bungee.event.EventHandler;
 import net.momirealms.craftengine.proxy.bungeecord.BungeeCordCraftEngine;
 import net.momirealms.craftengine.proxy.bungeecord.network.inject.PacketPipelineInjector;
 import net.momirealms.craftengine.proxy.bungeecord.platform.BungeePlayer;
+import net.momirealms.craftengine.proxy.bungeecord.reflection.bungee.UserConnectionProxy;
+import net.momirealms.craftengine.proxy.bungeecord.reflection.bungee.netty.ChannelWrapperProxy;
 import net.momirealms.craftengine.proxy.common.ProxyCraftEngine;
 import net.momirealms.craftengine.proxy.common.network.ChannelConnection;
 import net.momirealms.craftengine.proxy.common.network.listener.PacketListenerManager;
 import net.momirealms.craftengine.proxy.common.network.packet.PacketRegistration;
 import net.momirealms.craftengine.proxy.common.network.protocol.PacketSide;
 import net.momirealms.craftengine.proxy.common.network.protocol.packettype.PacketType;
-import net.momirealms.sparrow.reflection.clazz.SparrowClass;
-import net.momirealms.sparrow.reflection.method.matcher.MethodMatcher;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
 public class BungeePacketListenerManager extends PacketListenerManager implements Listener {
-    private static final String USER_CONNECTION_CLASS_NAME = "net.md_5.bungee.UserConnection";
-    private static final String CHANNEL_WRAPPER_CLASS_NAME = "net.md_5.bungee.netty.ChannelWrapper";
-    private static final MethodHandle GET_PLAYER_CHANNEL_WRAPPER_METHOD; // UserConnection#getCh()
-    private static final MethodHandle GET_WRAPPER_CHANNEL_METHOD; // ChannelWrapper#getHandle()
-
     private final BungeeCordCraftEngine plugin;
     private final PacketPipelineInjector pipelineInjector; // 负责 Bungee Netty pipeline 注入
     private final PacketListenerManager.ErrorHandler errorHandler;
     private final ConcurrentMap<Channel, ChannelConnection> connectionsByChannel = new ConcurrentHashMap<>(); // Channel 生命周期索引
     private volatile boolean loaded;
-
-    static {
-        Class<?> userConnectionClass = SparrowClass.findNoRemap(USER_CONNECTION_CLASS_NAME);
-        GET_PLAYER_CHANNEL_WRAPPER_METHOD = SparrowClass.of(userConnectionClass).getDeclaredSparrowMethod(MethodMatcher.named("getCh")).unreflect();
-        Class<?> channelWrapperClass = SparrowClass.findNoRemap(CHANNEL_WRAPPER_CLASS_NAME);
-        GET_WRAPPER_CHANNEL_METHOD = SparrowClass.of(channelWrapperClass).getDeclaredSparrowMethod(MethodMatcher.named("getHandle")).unreflect();
-    }
 
     public BungeePacketListenerManager(BungeeCordCraftEngine plugin) {
         super();
@@ -135,14 +122,9 @@ public class BungeePacketListenerManager extends PacketListenerManager implement
     // 通过玩家底层的 ChannelWrapper 找到对应的 ChannelConnection
     @Nullable
     private ChannelConnection connectionByPlayer(ProxiedPlayer player) {
-        try {
-            Object channelWrapper = GET_PLAYER_CHANNEL_WRAPPER_METHOD.invoke(player);
-            Channel channel = (Channel) GET_WRAPPER_CHANNEL_METHOD.invoke(channelWrapper);
-            return this.connectionsByChannel.get(channel);
-        } catch (Throwable e) {
-            this.plugin.getLogger().log(Level.WARNING, "Failed to access Netty channel of player " + player.getDisplayName() + ", player connections will not be tracked", e);
-        }
-        return null;
+        Object channelWrapper = UserConnectionProxy.INSTANCE.getCh(player);
+        Channel handle = ChannelWrapperProxy.INSTANCE.getHandle(channelWrapper);
+        return this.connectionsByChannel.get(handle);
     }
 
     @Override

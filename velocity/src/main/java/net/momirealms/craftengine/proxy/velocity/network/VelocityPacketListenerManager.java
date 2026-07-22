@@ -14,33 +14,20 @@ import net.momirealms.craftengine.proxy.common.network.protocol.packettype.Packe
 import net.momirealms.craftengine.proxy.velocity.VelocityCraftEngine;
 import net.momirealms.craftengine.proxy.velocity.network.inject.PacketPipelineInjector;
 import net.momirealms.craftengine.proxy.velocity.platform.VelocityPlayer;
+import net.momirealms.craftengine.proxy.velocity.reflection.velocitypowered.proxy.connection.MinecraftConnectionProxy;
+import net.momirealms.craftengine.proxy.velocity.reflection.velocitypowered.proxy.connection.client.ConnectedPlayerProxy;
 import net.momirealms.craftengine.proxy.velocity.util.VelocityAdventureHelper;
-import net.momirealms.sparrow.reflection.clazz.SparrowClass;
-import net.momirealms.sparrow.reflection.method.matcher.MethodMatcher;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class VelocityPacketListenerManager extends PacketListenerManager {
-    private static final String CONNECTED_PLAYER_CLASS_NAME = "com.velocitypowered.proxy.connection.client.ConnectedPlayer";
-    private static final String MINECRAFT_CONNECTION_CLASS_NAME = "com.velocitypowered.proxy.connection.MinecraftConnection";
-    private static final MethodHandle GET_PLAYER_CONNECTION_METHOD; // ConnectedPlayer#getConnection()
-    private static final MethodHandle GET_CONNECTION_CHANNEL_METHOD; // MinecraftConnection#getChannel()
-
     private final VelocityCraftEngine plugin;
     private final PacketPipelineInjector pipelineInjector; // 负责 Velocity Netty pipeline 注入
     private final PacketListenerManager.ErrorHandler errorHandler;
     private final ConcurrentMap<Channel, ChannelConnection> connectionsByChannel = new ConcurrentHashMap<>(); // Channel 生命周期索引
     private volatile boolean loaded;
-
-    static {
-        Class<?> connectedPlayerClass = SparrowClass.findNoRemap(CONNECTED_PLAYER_CLASS_NAME);
-        GET_PLAYER_CONNECTION_METHOD = SparrowClass.of(connectedPlayerClass).getDeclaredSparrowMethod(MethodMatcher.named("getConnection")).unreflect();
-        Class<?> minecraftConnectionClass = SparrowClass.findNoRemap(MINECRAFT_CONNECTION_CLASS_NAME);
-        GET_CONNECTION_CHANNEL_METHOD = SparrowClass.of(minecraftConnectionClass).getDeclaredSparrowMethod(MethodMatcher.named("getChannel")).unreflect();
-    }
 
     public VelocityPacketListenerManager(VelocityCraftEngine plugin) {
         super();
@@ -132,14 +119,9 @@ public final class VelocityPacketListenerManager extends PacketListenerManager {
     // 通过玩家底层的 MinecraftConnection 找到对应的 ChannelConnection
     @Nullable
     private ChannelConnection connectionByPlayer(Player player) {
-        try {
-            Object connection = GET_PLAYER_CONNECTION_METHOD.invoke(player);
-            Channel channel = (Channel) GET_CONNECTION_CHANNEL_METHOD.invoke(connection);
-            return this.connectionsByChannel.get(channel);
-        } catch (Throwable e) {
-            this.plugin.logger.warn("Failed to access Netty channel of player {}, player connections will not be tracked", player.getUsername(), e);
-        }
-        return null;
+        Object connection = ConnectedPlayerProxy.INSTANCE.getConnection(player);
+        Channel channel = MinecraftConnectionProxy.INSTANCE.getChannel(connection);
+        return this.connectionsByChannel.get(channel);
     }
 
     @Override
