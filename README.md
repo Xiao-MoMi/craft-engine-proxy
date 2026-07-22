@@ -1,5 +1,7 @@
 # CraftEngine Proxy
 
+**English** | [简体中文](README.zh-CN.md)
+
 A companion plugin for [CraftEngine](https://github.com/Xiao-MoMi/craft-engine), running on your **Velocity** or **BungeeCord** proxy.
 
 ## Features
