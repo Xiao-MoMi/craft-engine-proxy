@@ -101,11 +101,9 @@ public final class VelocityPacketListenerManager extends PacketListenerManager {
     public void onDisconnect(DisconnectEvent event) {
         // 保留连接对象到 Channel 关闭, 这里只解除玩家引用
         ChannelConnection connection = this.connectionByPlayer(event.getPlayer());
-        if (connection == null) {
-            this.plugin.logger.warn("Failed to access Netty channel of player {}, player connections will not be tracked", event.getPlayer().getUsername());
-            return;
+        if (connection != null) {
+            connection.unbind(event.getPlayer().getUniqueId());
         }
-        connection.unbind(event.getPlayer().getUniqueId());
     }
 
     private void addConnection(ChannelConnection connection) {

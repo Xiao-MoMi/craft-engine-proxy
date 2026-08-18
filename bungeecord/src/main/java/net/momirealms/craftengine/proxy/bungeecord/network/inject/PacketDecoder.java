@@ -42,7 +42,6 @@ final class PacketDecoder extends MessageToMessageDecoder<ByteBuf> {
     public void userEventTriggered(ChannelHandlerContext context, Object event) throws Exception {
         // BungeeCord 启用压缩会重建 codec 顺序, 需要把捕获 handler 放回 codec 前
         if (!this.relocated && context.pipeline().names().contains("decompress")) {
-            this.relocated = true;
             PacketPipelineInjector.relocate(context.pipeline());
         }
         super.userEventTriggered(context, event);
