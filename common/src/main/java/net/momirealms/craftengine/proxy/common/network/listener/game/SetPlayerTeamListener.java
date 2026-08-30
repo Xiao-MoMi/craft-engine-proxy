@@ -28,7 +28,8 @@ public final class SetPlayerTeamListener {
         PacketRoute route = PacketRoute.typed(ConnectionState.PLAY, PacketType.Play.Server.TEAMS);
         registry.registerBetween(route, ClientVersion.V_1_20, ClientVersion.V_1_20_2, new V1_20(plugin));
         registry.register(route, ClientVersion.V_1_20_3, new V1_20_3(plugin));
-        registry.registerSince(route, ClientVersion.V_1_20_5, new V1_20_5(plugin));
+        registry.registerBetween(route, ClientVersion.V_1_20_5, ClientVersion.V_26_1, new V1_20_5(plugin));
+        registry.register(route, ClientVersion.V_26_2, new V26_2(plugin));
     }
 
     private static final class V1_20 implements PacketHandler {
@@ -183,6 +184,60 @@ public final class SetPlayerTeamListener {
                 replaceBuf.writeVarInt(color);
                 replaceBuf.writeNbt(tokens2.isEmpty() ? prefix : AdventureHelper.componentToTag(clientVersion, AdventureHelper.replaceText(AdventureHelper.tagToComponent(clientVersion, prefix), tokens2, context)), false);
                 replaceBuf.writeNbt(tokens3.isEmpty() ? suffix : AdventureHelper.componentToTag(clientVersion, AdventureHelper.replaceText(AdventureHelper.tagToComponent(clientVersion, suffix), tokens3, context)), false);
+                if (entities != null) {
+                    replaceBuf.writeStringList(entities);
+                }
+            });
+        }
+    }
+
+    private static final class V26_2 implements PacketHandler {
+        private final ProxyCraftEngine plugin;
+
+        private V26_2(ProxyCraftEngine plugin) {
+            this.plugin = plugin;
+        }
+
+        @Override
+        public void handle(ChannelConnection connection, @Nullable ProxyPlayer player, PacketContext packet) {
+            if (player == null) return;
+            NetworkTagData netWorkTagData = this.plugin.networkTagDataSyncService().getTagData(player);
+            if (netWorkTagData == null) return;
+
+            ClientVersion clientVersion = packet.clientVersion();
+            ProxyByteBuf buf = packet.payload();
+            String name = buf.readUtf();
+            byte method = buf.readByte();
+            if (method != 2 && method != 0) return;
+            Tag displayName = buf.readNbt(false);
+            if (displayName == null) return;
+            Tag prefix = buf.readNbt(false);
+            if (prefix == null) return;
+            Tag suffix = buf.readNbt(false);
+            if (suffix == null) return;
+            int visibility = buf.readVarInt();
+            int collisionRule = buf.readVarInt();
+            @Nullable Integer color = buf.readNullable(ProxyByteBuf::readVarInt);
+            byte options = buf.readByte();
+            List<String> entities = method == 0 ? buf.readStringList() : null;
+
+            Map<String, ComponentProvider> tokens1 = netWorkTagData.matchNetworkTags(displayName);
+            Map<String, ComponentProvider> tokens2 = netWorkTagData.matchNetworkTags(prefix);
+            Map<String, ComponentProvider> tokens3 = netWorkTagData.matchNetworkTags(suffix);
+            if (tokens1.isEmpty() && tokens2.isEmpty() && tokens3.isEmpty()) return;
+
+            NetworkTextReplaceContext context = new NetworkTextReplaceContext(player, netWorkTagData);
+            packet.rewritePayload(replaceBuf -> {
+                replaceBuf.writeVarInt(packet.packetID());
+                replaceBuf.writeUtf(name);
+                replaceBuf.writeByte(method);
+                replaceBuf.writeNbt(tokens1.isEmpty() ? displayName : AdventureHelper.componentToTag(clientVersion, AdventureHelper.replaceText(AdventureHelper.tagToComponent(clientVersion, displayName), tokens1, context)), false);
+                replaceBuf.writeNbt(tokens2.isEmpty() ? prefix : AdventureHelper.componentToTag(clientVersion, AdventureHelper.replaceText(AdventureHelper.tagToComponent(clientVersion, prefix), tokens2, context)), false);
+                replaceBuf.writeNbt(tokens3.isEmpty() ? suffix : AdventureHelper.componentToTag(clientVersion, AdventureHelper.replaceText(AdventureHelper.tagToComponent(clientVersion, suffix), tokens3, context)), false);
+                replaceBuf.writeVarInt(visibility);
+                replaceBuf.writeVarInt(collisionRule);
+                replaceBuf.writeNullable(color, ProxyByteBuf::writeVarInt);
+                replaceBuf.writeByte(options);
                 if (entities != null) {
                     replaceBuf.writeStringList(entities);
                 }
